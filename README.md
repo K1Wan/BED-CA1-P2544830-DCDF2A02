@@ -7,9 +7,9 @@ Install dependencies (npm install)
 
 Set up database and seed (npm run db)
 
-Start server (npm run dev)
+Start server (npm run dev) (runs on http://localhost:3000)
 
-View API docs (/api-docs)
+View API docs (/api-docs) (on http://localhost:3000/api-docs)
 
 API routes:
 Create a Master via POST /users, read by username with GET /users?username= or by ID with GET /users/:id, update using PUT /users/:id or PATCH /users/:id, and delete with DELETE /users/:id. Claim daily login bonuses of 5 Saint Quartz via POST /users/login?username=.
