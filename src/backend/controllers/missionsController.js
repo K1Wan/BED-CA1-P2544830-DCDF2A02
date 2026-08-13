@@ -1,6 +1,7 @@
 import { UserModel } from "../models/users.js";
 import { ServantModel } from "../models/servants.js";
 import { MissionModel, MISSION_TYPES } from "../models/missions.js";
+import { QuestModel } from "../models/quests.js";
 import { AppError, ERROR_CODES } from "../utils/errors.js";
 
 export const MissionsController = {
@@ -26,14 +27,19 @@ export const MissionsController = {
 
       const servant = await ServantModel.getById(servantId);
       const mission = MISSION_TYPES[missionType];
-      const rewardQuartz = Math.floor(Math.random() * (mission.maxQuartz - mission.minQuartz + 1)) + mission.minQuartz;
 
+      const { quartzBonus, chanceBonus, bonuses } = MissionModel.calculateBonuses(servantId, servant.class, missionType);
+
+      const baseQuartz = Math.floor(Math.random() * (mission.maxQuartz - mission.minQuartz + 1)) + mission.minQuartz;
+      const totalQuartz = baseQuartz + quartzBonus;
+
+      const totalServantChance = mission.servantChance + chanceBonus;
       let rewardServant = null;
-      if (Math.random() < mission.servantChance) {
+      if (Math.random() < totalServantChance) {
         rewardServant = await ServantModel.getRandomByRarity(mission.servantRarity);
       }
 
-      const result = await MissionModel.create(user.user_id, owned.id, servantId, missionType, rewardQuartz, rewardServant);
+      const result = await MissionModel.create(user.user_id, owned.id, servantId, missionType, totalQuartz, rewardServant);
 
       res.status(201).json({
         message: `${servant.name} sent on ${mission.name}!`,
@@ -42,7 +48,13 @@ export const MissionsController = {
         servant,
         completesIn: `${result.duration / 1000} seconds`,
         completedAt: result.completedAt,
-        rewards: { quartz: rewardQuartz, servant: rewardServant ? rewardServant.name : null },
+        rewards: {
+          baseQuartz,
+          quartzBonus,
+          totalQuartz,
+          servant: rewardServant ? rewardServant.name : null,
+        },
+        bonuses: bonuses.length > 0 ? bonuses : ["No bonus applied"],
       });
     } catch (err) {
       next(err);
@@ -92,6 +104,19 @@ export const MissionsController = {
       if (mission.reward_servant) {
         await ServantModel.addToCollection(user.user_id, mission.reward_servant);
         bonusServant = await ServantModel.getById(mission.reward_servant);
+      }
+
+      // Update quests
+      await QuestModel.updateProgress(user.user_id, "missions_done", 1);
+
+      // Update unique servants quest if bonus servant
+      if (bonusServant) {
+        const collection = await ServantModel.getCollection(user.user_id);
+        const uniqueCount = new Set(collection.map(s => s.servant_id)).size;
+        await QuestModel.setProgress(user.user_id, "unique_servants", uniqueCount);
+        if (bonusServant.rarity === 5) {
+          await QuestModel.setProgress(user.user_id, "five_star", 1);
+        }
       }
 
       res.json({

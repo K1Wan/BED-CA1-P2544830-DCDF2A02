@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collection - Fate Summoning Chamber</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">✨ Fate Summoning Chamber</div>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="summon.html">Summon</a></li>
+      <li><a href="collection.html" class="active">Collection</a></li>
+      <li><a href="quests.html">Quests</a></li>
+      <li><a href="missions.html">Missions</a></li>
+    </ul>
+    <div>
+      <span class="user-info" id="user-info"></span>
+      <button class="logout-btn hidden" id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="card">
+      <h2>Your Collection (<span id="collection-total">0</span> total)</h2>
+      <p style="color:#888;margin-bottom:10px;">Duplicates can be converted to quartz or traded up for higher rarity!</p>
+      <div id="fusion-msg"></div>
+      <div class="filter-group">
+        <select id="filter-class" onchange="loadCollection()">
+          <option value="">All Classes</option>
+          <option value="Saber">Saber</option>
+          <option value="Archer">Archer</option>
+          <option value="Lancer">Lancer</option>
+          <option value="Rider">Rider</option>
+          <option value="Caster">Caster</option>
+          <option value="Assassin">Assassin</option>
+          <option value="Berserker">Berserker</option>
+        </select>
+        <select id="filter-rarity" onchange="loadCollection()">
+          <option value="">All Rarity</option>
+          <option value="5">⭐⭐⭐⭐⭐</option>
+          <option value="4">⭐⭐⭐⭐</option>
+          <option value="3">⭐⭐⭐</option>
+        </select>
+      </div>
+      <div id="collection-grid" class="grid"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!localStorage.getItem("currentUser")) {
+        window.location.href = "index.html";
+        return;
+      }
+      init();
+      updateNavbar();
+      loadCollectionWithFusion();
+    });
+
+    async function loadCollectionWithFusion() {
+      const classFilter = document.getElementById("filter-class")?.value || "";
+      const rarityFilter = document.getElementById("filter-rarity")?.value || "";
+
+      let url = `${API}/users/servants?username=${currentUser.username}`;
+      if (classFilter) url += `&class=${classFilter}`;
+      if (rarityFilter) url += `&rarity=${rarityFilter}`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const grid = document.getElementById("collection-grid");
+      const total = document.getElementById("collection-total");
+
+      if (!grid) return;
+
+      if (data.collection.length === 0) {
+        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#888;">No servants yet. Go summon some!</p>';
+        if (total) total.textContent = "0";
+        return;
+      }
+
+      // Group by servant_id
+      const grouped = {};
+      data.collection.forEach(s => {
+        if (!grouped[s.servant_id]) {
+          grouped[s.servant_id] = { ...s, count: 1 };
+        } else {
+          grouped[s.servant_id].count++;
+        }
+      });
+
+      const uniqueServants = Object.values(grouped);
+      if (total) total.textContent = data.collection.length;
+
+      grid.innerHTML = uniqueServants.map(s => {
+        const canConvert = s.count >= 2;
+        const canTradeUp = s.count >= 3;
+        return `
+          <div class="servant-card rarity-${s.rarity}">
+            <div class="stars">${"⭐".repeat(s.rarity)}</div>
+            <div class="name">${s.name}</div>
+            <div class="class">${s.class}</div>
+            <div class="np">${s.noble_phantasm}</div>
+            <div style="color:#c9a84c;font-size:0.75rem;margin-top:3px;">x${s.count} owned</div>
+            ${canConvert ? `<button class="btn-small" style="margin-top:5px;" onclick="convertServant('${s.servant_id}', '${s.name}')">💰 Convert (${s.rarity === 5 ? 30 : s.rarity === 4 ? 10 : 3}💎)</button>` : ''}
+            ${canTradeUp ? `<button class="btn-small btn-danger" style="margin-top:3px;" onclick="tradeUp('${s.servant_id}', '${s.name}')">🔄 Trade 3x</button>` : ''}
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function convertServant(servantId, servantName) {
+      if (!confirm(`Convert one ${servantName} duplicate to quartz?`)) return;
+
+      const res = await fetch(`${API}/users/convert?username=${currentUser.username}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ servantId }),
+      });
+      const data = await res.json();
+
+      const msgDiv = document.getElementById("fusion-msg");
+      if (res.ok) {
+        msgDiv.innerHTML = `<div class="success-msg">${data.message}</div>`;
+        loadCollectionWithFusion();
+      } else {
+        msgDiv.innerHTML = `<div class="error-msg">${data.error}</div>`;
+      }
+    }
+
+    async function tradeUp(servantId, servantName) {
+      if (!confirm(`Trade 3x ${servantName} for a random higher rarity servant?`)) return;
+
+      const res = await fetch(`${API}/users/trade-up?username=${currentUser.username}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ servantId }),
+      });
+      const data = await res.json();
+
+      const msgDiv = document.getElementById("fusion-msg");
+      if (res.ok) {
+        msgDiv.innerHTML = `<div class="success-msg">${data.message}</div>`;
+        loadCollectionWithFusion();
+      } else {
+        msgDiv.innerHTML = `<div class="error-msg">${data.error}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

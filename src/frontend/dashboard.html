@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Fate Summoning Chamber</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">✨ Fate Summoning Chamber</div>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="dashboard.html" class="active">Dashboard</a></li>
+      <li><a href="summon.html">Summon</a></li>
+      <li><a href="collection.html">Collection</a></li>
+      <li><a href="quests.html">Quests</a></li>
+      <li><a href="missions.html">Missions</a></li>
+    </ul>
+    <div>
+      <span class="user-info" id="user-info"></span>
+      <button class="logout-btn hidden" id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 style="color:#ffd700;margin-bottom:20px;">Welcome, <span id="m-name">Master</span>!</h1>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="value" id="m-quartz">0</div>
+        <div class="label">💎 Saint Quartz</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="m-servants">0</div>
+        <div class="label">👥 Servants</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="m-active-missions">0</div>
+        <div class="label">🗺️ Active Missions</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h2>Daily Bonus</h2>
+      <div id="bonus-msg"></div>
+      <button onclick="claimDailyBonus()">🎁 Claim +5 Saint Quartz</button>
+    </div>
+
+    <div class="card">
+      <h2>Quick Actions</h2>
+      <div class="btn-group">
+        <a href="summon.html" class="btn">✨ Summon Servants</a>
+        <a href="collection.html" class="btn">📋 View Collection</a>
+        <a href="missions.html" class="btn">🗺️ Missions</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Recent Mission Activity</h2>
+      <div id="dashboard-missions">
+        <p style="color:#888;">Loading missions...</p>
+      </div>
+      <a href="missions.html" class="btn btn-small" style="margin-top:10px;">View All Missions →</a>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    let dashboardInterval = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!localStorage.getItem("currentUser")) {
+        window.location.href = "index.html";
+        return;
+      }
+      init();
+      updateNavbar();
+      loadDashboard();
+      loadDashboardMissions();
+      dashboardInterval = setInterval(loadDashboardMissions, 5000);
+    });
+
+    window.addEventListener("beforeunload", () => {
+      if (dashboardInterval) clearInterval(dashboardInterval);
+    });
+
+    async function loadDashboardMissions() {
+      if (!currentUser) return;
+
+      const res = await fetch(`${API}/users/missions?username=${currentUser.username}`);
+      const data = await res.json();
+
+      const active = data.missions.filter(m => m.status === "active" && !m.readyToClaim);
+      const ready = data.missions.filter(m => m.readyToClaim);
+
+      const activeCountEl = document.getElementById("m-active-missions");
+      if (activeCountEl) activeCountEl.textContent = active.length;
+
+      const div = document.getElementById("dashboard-missions");
+      if (!div) return;
+
+      if (ready.length === 0 && active.length === 0) {
+        div.innerHTML = '<p style="color:#888;">No missions yet. Start one from the Missions page!</p>';
+        return;
+      }
+
+      let html = "";
+
+      if (ready.length > 0) {
+        html += `<p style="color:#6bff6b;margin-bottom:8px;">✅ ${ready.length} mission(s) ready to claim!</p>`;
+        ready.slice(0, 2).forEach(m => {
+          html += `
+            <div class="mission-card">
+              <div class="mission-info">
+                <strong>${m.servant_name}</strong> — ${m.mission_type}<br>
+                <small>💎 ${m.reward_quartz} quartz | <span style="color:#6bff6b;">Ready!</span></small>
+              </div>
+              <button class="btn-small" onclick="claimMission('${m.mission_id}')">Claim</button>
+            </div>
+          `;
+        });
+        if (ready.length > 2) {
+          html += `<p style="color:#888;font-size:0.85rem;">+${ready.length - 2} more ready...</p>`;
+        }
+      }
+
+      if (active.length > 0) {
+        html += `<p style="color:#ffd700;margin:10px 0 8px;">⏳ ${active.length} mission(s) in progress</p>`;
+        active.slice(0, 2).forEach(m => {
+          const timeLeft = getTimeLeft(m.completed_at);
+          html += `
+            <div class="mission-card">
+              <div class="mission-info">
+                <strong>${m.servant_name}</strong> — ${m.mission_type}<br>
+                <small>💎 ${m.reward_quartz} quartz | <span class="countdown" data-completed="${m.completed_at}">${timeLeft}</span></small>
+              </div>
+            </div>
+          `;
+        });
+        if (active.length > 2) {
+          html += `<p style="color:#888;font-size:0.85rem;">+${active.length - 2} more in progress...</p>`;
+        }
+      }
+
+      div.innerHTML = html;
+
+      // Update countdowns
+      document.querySelectorAll("#dashboard-missions .countdown").forEach(el => {
+        const completedAt = el.getAttribute("data-completed");
+        const diff = Math.ceil((new Date(completedAt) - new Date()) / 1000);
+        if (diff <= 0) {
+          el.textContent = "Ready!";
+          el.style.color = "#6bff6b";
+        } else {
+          const mins = Math.floor(diff / 60);
+          const secs = diff % 60;
+          el.textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

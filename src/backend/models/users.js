@@ -1,19 +1,29 @@
 import { sql } from "../db/index.js";
 import { v4 as uuid } from "uuid";
+import { hashPassword, comparePassword } from "../utils/auth.js";
 
 export const UserModel = {
   async create(username, password = "password123") {
     const userId = uuid();
+    const hashedPassword = await hashPassword(password);
     await sql.execute(
       `INSERT INTO users (user_id, username, password) VALUES (?, ?, ?)`,
-      [userId, username.trim(), password]
+      [userId, username.trim(), hashedPassword]
     );
     return { userId, username: username.trim(), saintQuartz: 330 };
   },
 
   async findByUsername(username) {
     const result = await sql.execute(
-      `SELECT user_id, username, saint_quartz, created_at FROM users WHERE username = ?`,
+      `SELECT user_id, username, saint_quartz, last_login, created_at FROM users WHERE username = ?`,
+      [username]
+    );
+    return result.rows[0] || null;
+  },
+
+  async findByUsernameWithPassword(username) {
+    const result = await sql.execute(
+      `SELECT * FROM users WHERE username = ?`,
       [username]
     );
     return result.rows[0] || null;
@@ -21,7 +31,7 @@ export const UserModel = {
 
   async findById(userId) {
     const result = await sql.execute(
-      `SELECT user_id, username, saint_quartz, created_at FROM users WHERE user_id = ?`,
+      `SELECT user_id, username, saint_quartz, last_login, created_at FROM users WHERE user_id = ?`,
       [userId]
     );
     return result.rows[0] || null;
@@ -46,5 +56,17 @@ export const UserModel = {
   async getServantCount(userId) {
     const result = await sql.execute(`SELECT COUNT(*) as count FROM user_servants WHERE user_id = ?`, [userId]);
     return result.rows[0].count;
+  },
+
+  async updateLastLogin(userId) {
+    const now = new Date().toISOString();
+    await sql.execute(`UPDATE users SET last_login = ? WHERE user_id = ?`, [now, userId]);
+  },
+
+  async verifyPassword(username, password) {
+    const user = await this.findByUsernameWithPassword(username);
+    if (!user) return null;
+    const isValid = await comparePassword(password, user.password);
+    return isValid ? user : null;
   },
 };

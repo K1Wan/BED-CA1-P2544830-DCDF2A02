@@ -8,14 +8,14 @@ const router = Router();
  * /users:
  *   post:
  *     tags: [Users]
- *     summary: Create a new Master
+ *     summary: Register a new Master
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [username]
+ *             required: [username, password]
  *             properties:
  *               username:
  *                 type: string
@@ -23,9 +23,39 @@ const router = Router();
  *                 type: string
  *     responses:
  *       201:
- *         description: Master created
+ *         description: Master created with token
+ *       400:
+ *         description: Validation error
+ *       409:
+ *         description: Username taken
  */
 router.post("/", UsersController.create);
+
+/**
+ * @swagger
+ * /users/login:
+ *   post:
+ *     tags: [Users]
+ *     summary: Login with username and password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, password]
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful, returns token
+ *       401:
+ *         description: Invalid credentials
+ */
+router.post("/login", UsersController.login);
 
 /**
  * @swagger
@@ -128,6 +158,8 @@ router.delete("/:id", UsersController.remove);
  *       200:
  *         description: Bonus claimed
  */
-router.post("/login", UsersController.loginBonus);
+// Note: The daily bonus route is handled by the login bonus controller
+// but mapped separately to avoid conflict with auth login
+router.post("/bonus", UsersController.loginBonus);
 
 export default router;

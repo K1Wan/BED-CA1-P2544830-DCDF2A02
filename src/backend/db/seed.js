@@ -25,5 +25,25 @@ for (const s of fateServants) {
   );
 }
 
-console.log("Servants seeded!");
+const quests = [
+  { questId: "first-steps", name: "First Steps", description: "Create your Master account", objectiveType: "create_account", targetValue: 1, rewardQuartz: 5 },
+  { questId: "collector-1", name: "Collector I", description: "Own 3 unique servants", objectiveType: "unique_servants", targetValue: 3, rewardQuartz: 10 },
+  { questId: "collector-2", name: "Collector II", description: "Own 7 unique servants", objectiveType: "unique_servants", targetValue: 7, rewardQuartz: 20 },
+  { questId: "collector-3", name: "Collector III", description: "Own all 15 servants", objectiveType: "unique_servants", targetValue: 15, rewardQuartz: 50 },
+  { questId: "summoner-1", name: "Summoner I", description: "Perform 5 summons", objectiveType: "total_summons", targetValue: 5, rewardQuartz: 10 },
+  { questId: "summoner-2", name: "Summoner II", description: "Perform 20 summons", objectiveType: "total_summons", targetValue: 20, rewardQuartz: 30 },
+  { questId: "mission-runner", name: "Mission Runner", description: "Complete 3 missions", objectiveType: "missions_done", targetValue: 3, rewardQuartz: 15 },
+  { questId: "five-star", name: "5-Star Hunter", description: "Own a 5-star servant", objectiveType: "five_star", targetValue: 1, rewardQuartz: 25 },
+  { questId: "fusion-master", name: "Fusion Master", description: "Convert 3 duplicates", objectiveType: "fusions_done", targetValue: 3, rewardQuartz: 15 },
+  { questId: "trade-up", name: "Trade-Up", description: "Complete a trade-up fusion", objectiveType: "trade_up", targetValue: 1, rewardQuartz: 20 },
+];
+
+for (const q of quests) {
+  await sql.execute(
+    `INSERT OR IGNORE INTO quests (quest_id, name, description, objective_type, target_value, reward_quartz) VALUES (?, ?, ?, ?, ?, ?)`,
+    [q.questId, q.name, q.description, q.objectiveType, q.targetValue, q.rewardQuartz]
+  );
+}
+
+console.log("Servants and quests seeded!");
 process.exit(0);

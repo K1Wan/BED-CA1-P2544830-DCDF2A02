@@ -16,6 +16,7 @@ await client.execute(`
     username TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL DEFAULT 'password123',
     saint_quartz INTEGER NOT NULL DEFAULT 330,
+    last_login TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )
 `);
@@ -51,6 +52,38 @@ await client.execute(`
     reward_servant TEXT,
     started_at TEXT DEFAULT CURRENT_TIMESTAMP,
     completed_at TEXT
+  )
+`);
+
+await client.execute(`
+  CREATE TABLE IF NOT EXISTS quests (
+    quest_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    objective_type TEXT NOT NULL,
+    target_value INTEGER NOT NULL,
+    reward_quartz INTEGER NOT NULL
+  )
+`);
+
+await client.execute(`
+  CREATE TABLE IF NOT EXISTS user_quests (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    quest_id TEXT NOT NULL REFERENCES quests(quest_id),
+    progress INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'active'
+  )
+`);
+
+await client.execute(`
+  CREATE TABLE IF NOT EXISTS fusions (
+    fusion_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    servant_id TEXT NOT NULL,
+    result TEXT NOT NULL,
+    reward TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )
 `);
 

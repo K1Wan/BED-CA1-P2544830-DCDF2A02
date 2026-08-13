@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "seed": "node src/db/seed.js",
-    "db": "node src/db/seed.js",
-    "start": "node src/index.js"
+    "dev": "nodemon src/backend/index.js",
+    "seed": "node src/backend/db/seed.js",
+    "db": "node src/backend/db/seed.js",
+    "start": "node src/backend/index.js"
   },
   "keywords": [],
   "author": "",
@@ -15,9 +15,11 @@
   "type": "module",
   "dependencies": {
     "@libsql/client": "^0.17.4",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "libsql": "^0.5.29",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quests - Fate Summoning Chamber</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">✨ Fate Summoning Chamber</div>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="summon.html">Summon</a></li>
+      <li><a href="collection.html">Collection</a></li>
+      <li><a href="quests.html" class="active">Quests</a></li>
+      <li><a href="missions.html">Missions</a></li>
+    </ul>
+    <div>
+      <span class="user-info" id="user-info"></span>
+      <button class="logout-btn hidden" id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 style="color:#ffd700;margin-bottom:20px;">📜 Quest Board</h1>
+    <div id="quest-msg"></div>
+    <div id="quest-list"></div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    let questInterval = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!localStorage.getItem("currentUser")) {
+        window.location.href = "index.html";
+        return;
+      }
+      init();
+      updateNavbar();
+      loadQuests();
+      questInterval = setInterval(loadQuests, 10000);
+    });
+
+    window.addEventListener("beforeunload", () => {
+      if (questInterval) clearInterval(questInterval);
+    });
+
+    async function loadQuests() {
+      if (!currentUser) return;
+
+      const res = await fetch(`${API}/users/quests?username=${currentUser.username}`);
+      const data = await res.json();
+
+      const list = document.getElementById("quest-list");
+
+      if (!data.quests || data.quests.length === 0) {
+        list.innerHTML = '<p style="color:#888;">No quests available.</p>';
+        return;
+      }
+
+      const activeQuests = data.quests.filter(q => q.status === "active" || q.status === "ready");
+      const claimedQuests = data.quests.filter(q => q.status === "claimed");
+
+      let html = "";
+
+      // Active and ready quests
+      html += `<h2 style="color:#ffd700;margin-bottom:15px;">Active Quests</h2>`;
+
+      activeQuests.forEach(q => {
+        const progress = q.progress || 0;
+        const target = q.target_value;
+        const percent = Math.min((progress / target) * 100, 100);
+        const isReady = q.status === "ready";
+
+        html += `
+          <div class="card" style="${isReady ? 'border-color:#6bff6b;box-shadow:0 0 15px rgba(107,255,107,0.3);' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div>
+                <h3 style="margin:0;color:${isReady ? '#6bff6b' : '#ffd700'};">${q.name}</h3>
+                <p style="color:#aaa;font-size:0.9rem;">${q.description}</p>
+              </div>
+              <div style="text-align:right;">
+                <span style="color:#ffd700;font-weight:bold;">🎁 ${q.reward_quartz}💎</span>
+              </div>
+            </div>
+
+            <div style="background:rgba(0,0,0,0.4);border-radius:20px;height:20px;margin-bottom:10px;overflow:hidden;">
+              <div style="background:linear-gradient(90deg,#8b6914,#ffd700);height:100%;width:${percent}%;transition:width 0.5s;border-radius:20px;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:#c9a84c;font-size:0.85rem;">${progress} / ${target}</span>
+              ${isReady ? `<button class="btn-small" onclick="claimQuest('${q.quest_id}')">✅ Claim Reward</button>` : '<span style="color:#888;font-size:0.85rem;">In progress...</span>'}
+            </div>
+          </div>
+        `;
+      });
+
+      // Claimed quests
+      if (claimedQuests.length > 0) {
+        html += `<h2 style="color:#888;margin:20px 0 15px;">Completed</h2>`;
+        html += `<div class="card" style="opacity:0.6;">`;
+        claimedQuests.forEach(q => {
+          html += `
+            <div style="display:flex;justify-content:space-between;padding:5px 0;">
+              <span style="color:#888;">✅ ${q.name}</span>
+              <span style="color:#c9a84c;">+${q.reward_quartz}💎</span>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      list.innerHTML = html;
+    }
+
+    async function claimQuest(questId) {
+      const res = await fetch(`${API}/users/quests/claim?username=${currentUser.username}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questId }),
+      });
+      const data = await res.json();
+
+      const msgDiv = document.getElementById("quest-msg");
+      if (res.ok) {
+        msgDiv.innerHTML = `<div class="success-msg">${data.message} Total: ${data.totalQuartz}💎</div>`;
+        loadQuests();
+      } else {
+        msgDiv.innerHTML = `<div class="error-msg">${data.error}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { UserModel } from "../models/users.js";
 import { ServantModel } from "../models/servants.js";
+import { QuestModel } from "../models/quests.js";
 import { AppError, ERROR_CODES } from "../utils/errors.js";
 
 function rollRarity() {
@@ -13,6 +14,7 @@ async function pullServant(userId) {
   const rarity = rollRarity();
   const servant = await ServantModel.getRandomByRarity(rarity);
   await ServantModel.addToCollection(userId, servant.servant_id);
+  await QuestModel.updateProgress(userId, "total_summons", 1);
   return servant;
 }
 
@@ -28,6 +30,16 @@ export const SummonsController = {
 
       const newQuartz = await UserModel.addQuartz(user.user_id, -3);
       const servant = await pullServant(user.user_id);
+
+      // Update unique servants quest
+      const collection = await ServantModel.getCollection(user.user_id);
+      const uniqueCount = new Set(collection.map(s => s.servant_id)).size;
+      await QuestModel.setProgress(user.user_id, "unique_servants", uniqueCount);
+
+      // Check for 5-star
+      if (servant.rarity === 5) {
+        await QuestModel.setProgress(user.user_id, "five_star", 1);
+      }
 
       res.status(201).json({ message: "Summoning complete!", servant, remainingQuartz: newQuartz });
     } catch (err) {
@@ -46,8 +58,22 @@ export const SummonsController = {
 
       const newQuartz = await UserModel.addQuartz(user.user_id, -30);
       const servants = [];
+      let hasFiveStar = false;
+
       for (let i = 0; i < 11; i++) {
-        servants.push(await pullServant(user.user_id));
+        const servant = await pullServant(user.user_id);
+        servants.push(servant);
+        if (servant.rarity === 5) hasFiveStar = true;
+      }
+
+      // Update unique servants quest
+      const collection = await ServantModel.getCollection(user.user_id);
+      const uniqueCount = new Set(collection.map(s => s.servant_id)).size;
+      await QuestModel.setProgress(user.user_id, "unique_servants", uniqueCount);
+
+      // Check for 5-star
+      if (hasFiveStar) {
+        await QuestModel.setProgress(user.user_id, "five_star", 1);
       }
 
       res.status(201).json({ message: "Multi-summon complete! 10+1 servants summoned.", servants, remainingQuartz: newQuartz });

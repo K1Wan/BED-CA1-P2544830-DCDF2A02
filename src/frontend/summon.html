@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Summon - Fate Summoning Chamber</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">✨ Fate Summoning Chamber</div>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="summon.html" class="active">Summon</a></li>
+      <li><a href="collection.html">Collection</a></li>
+      <li><a href="quests.html">Quests</a></li>
+      <li><a href="missions.html">Missions</a></li>
+    </ul>
+    <div>
+      <span class="user-info" id="user-info"></span>
+      <button class="logout-btn hidden" id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="card" style="text-align:center;">
+      <h2>💎 Saint Quartz: <span id="summon-quartz">...</span></h2>
+    </div>
+
+    <div class="card">
+      <h2>Summon Servants</h2>
+      <div class="btn-group">
+        <button onclick="singleSummon()">✨ Single Summon (3💎)</button>
+        <button onclick="multiSummon()">🌟 Multi-Summon 10+1 (30💎)</button>
+      </div>
+      <p style="color:#888;font-size:0.85rem;">Rates: 5★ (5%) | 4★ (20%) | 3★ (75%)</p>
+      <div id="summon-result" class="result"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!currentUser) { window.location.href = "index.html"; return; }
+      const res = await fetch(`${API}/users?username=${currentUser.username}`);
+      const data = await res.json();
+      document.getElementById("summon-quartz").textContent = data.saint_quartz;
+    });
+  </script>
+</body>
+</html>
