@@ -35,19 +35,18 @@ app.use("/users", usersRoutes);
 // Global error handler (must be last)
 app.use(errorHandler);
 
-// Start server only if run directly
-if (process.argv[1] === new URL(import.meta.url).pathname) {
-  const server = app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-    console.log(`API docs at http://localhost:${PORT}/api-docs`);
-  });
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`Port ${PORT} is already in use. Try a different port by setting the PORT environment variable.`);
-      process.exit(1);
-    }
-    throw err;
-  });
-}
+// Always start the server
+const server = app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`API docs at http://localhost:${PORT}/api-docs`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Try a different port by setting the PORT environment variable.`);
+    process.exit(1);
+  }
+  throw err;
+});
 
 export { app };

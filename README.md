@@ -1,35 +1,22 @@
-Description:
-The Fate Summoning Chamber is a gacha-style collection game where Masters spend Saint Quartz to summon legendary Servants from the Fate anime series. (...) Masters can also send their Servants on timed missions to earn bonus quartz or even new Servants. Build your roster, filter your collection by class and rarity, and claim daily login bonuses to keep summoning.
-RNG rarity rates of 75% for 3-star, 20% for 4-star, and 5% for 5-star.
+Fate Summoning Chamber is a gacha-style Fate servant collection game where players take on the role of a Master and spend Saint Quartz to summon legendary servants from the Fate anime series with RNG rarity rates of 75% for 3-star, 20% for 4-star, and 5% for 5-star. Players can perform single summons costing 3 quartz or multi-summons with a 10+1 bonus costing 30 quartz for 11 pulls. The servant collection can be filtered by class and rarity across seven classes: Saber, Archer, Lancer, Rider, Caster, Assassin, and Berserker. A timed mission system allows players to send servants on missions to earn bonus quartz with a random class bonus and specific servant bonuses, plus a chance to earn new servants. A quest system provides long-term goals with rewards for collecting servants, performing summons, and completing missions. Duplicate servants can be converted to quartz or traded up for higher rarity servants through the fusion system. Daily login bonuses provide sustainable currency with a once-per-day limit.
 
-Setup & Run:
-Install dependencies (npm install)
+Setup & Run Instructions
+Clone the repository and navigate to the project folder. Install dependencies with npm install. Set up the database and seed data by running npm run db, which creates the relational tables and populates the servant pool with 15 Fate characters and 10 quests. Start the development server with npm run dev, which runs on http://localhost:3000. Open http://localhost:3000/api-docs in your browser for interactive Swagger documentation.
 
-Set up database and seed (npm run db)
+API Routes
+Register a new Master via POST /users with username and password, login via POST /users/login to receive a JWT token, and claim daily bonus via POST /users/bonus?username=Rin for 5 quartz once per day. Find a Master with GET /users?username=Rin or GET /users/:id, update with PUT /users/:id or PATCH /users/:id, and delete with DELETE /users/:id.
 
-Start server (npm run dev) (runs on http://localhost:3000)
+Summon servants using POST /users/summon?username=Rin for a single pull costing 3 quartz or POST /users/multi-summon?username=Rin for a 10+1 multi-pull costing 30 quartz. View your collection with GET /users/servants?username=Rin and filter by class using ?class=Saber or rarity using ?rarity=5.
 
-View API docs (/api-docs) (on http://localhost:3000/api-docs)
+Send servants on timed missions via POST /users/missions?username=Rin with mission types including Material Gathering (30 seconds, 3-5 quartz), Scouting (1 minute, 1-3 quartz, 10% chance of 3-star servant), and Holy Grail Hunt (2 minutes, 5-10 quartz, 5% chance of 4-star servant). Each mission has a random class bonus. View missions with GET /users/missions?username=Rin and filter by status using ?status=active. Claim completed mission rewards using POST /users/missions/claim?username=Rin.
 
-Masters (Users)
+View all quests with progress via GET /users/quests?username=Rin and claim completed quests via POST /users/quests/claim?username=Rin. Convert duplicate servants to quartz via POST /users/convert?username=Rin, trade 3 duplicates for a higher rarity servant via POST /users/trade-up?username=Rin, and view fusion history via GET /users/fusions?username=Rin. A health check is available at GET /api/health and Swagger documentation at GET /api-docs.
 
-Create a Master via POST /users, read by username with GET /users?username=, read by ID with GET /users/:id, update using PUT /users/:id or PATCH /users/:id, and delete with DELETE /users/:id. Claim daily login bonuses of 5 Saint Quartz via POST /users/login?username=.
+Project Structure
+The project follows MVC architecture with clear separation of concerns. The src/backend/controllers/ folder handles business logic and request validation. The src/backend/models/ folder serves as the data access layer with parameterized SQL queries to prevent injection. The src/backend/routes/ folder defines all endpoints with Swagger JSDoc annotations. The src/backend/db/ folder contains the database connection, Drizzle ORM table schemas, and seed data. The src/backend/utils/ folder provides custom error handling with AppError class, JWT authentication, and Swagger configuration. The src/frontend/ folder contains all HTML pages with CSS styling and shared JavaScript logic.
 
-Summons
+Database Design
+The database consists of seven relational tables with primary keys, foreign keys with cascade deletes, default values, and unique constraints. The users table stores Master accounts with authentication credentials and quartz balance. The servants table holds the gacha pool of 15 Fate characters. The user_servants table acts as a junction table linking users to servants with a many-to-many relationship. The missions table tracks timed missions with foreign keys to users and user_servants. The quests table defines quest objectives and rewards. The user_quests table tracks individual quest progress for each Master. The fusions table records duplicate conversion and trade-up history.
 
-Summon servants using POST /users/summon?username= for a single pull costing 3 quartz, or POST /users/multi-summon?username= for a 10+1 multi-pull costing 30 quartz. View your collection with GET /users/servants?username= and filter by class using ?class=Saber or by rarity using ?rarity=5.
-
-Missions
-
-Send servants on timed missions via POST /users/missions?username= with mission types including Material Gathering (30 seconds, 3-5 quartz), Scouting (1 minute, 1-3 quartz, 10% chance of 3-star servant), and Holy Grail Hunt (2 minutes, 5-10 quartz, 5% chance of 4-star servant). View missions with GET /users/missions?username= and filter by status using ?status=active. Claim completed mission rewards using POST /users/missions/claim?username=.
-
-Other
-
-A health check is available at GET /api/health. Interactive Swagger documentation is available at /api-docs.
-
-Assumptions:
-Each Master starts with 330 Saint Quartz. Single summons cost 3 quartz, multi-summons cost 30 quartz with a 10+1 bonus granting 11 pulls. Summon rates are 5% for 5-star, 20% for 4-star, and 75% for 3-star servants. The servant pool contains 15 pre-seeded Fate characters and is not editable via API.
-
-Usernames must be non-empty and unique. Passwords default to "password123" if not provided. Deleting a Master cascades to remove all servants and missions. Servants can only be on one active mission at a time. Daily login bonuses grant 5 quartz with no cooldown. Mission rewards are randomized within set ranges.
-
-The database uses local SQLite via libSQL and resets if the file is deleted. All queries use parameterized statements to prevent SQL injection. Error responses return a consistent JSON format with error message and error code fields.
+Assumptions
+Each new Master starts with 330 Saint Quartz. Single summons cost 3 quartz, multi-summons cost 30 quartz with a 10+1 bonus. Summon rates are 5% for 5-star, 20% for 4-star, and 75% for 3-star. The servant pool contains 15 pre-seeded Fate characters. Usernames are unique and non-empty. Passwords must be at least 6 characters and are hashed with bcrypt. JWT tokens expire after 24 hours. Daily login bonuses grant 5 quartz once per calendar day. Servants can only be on one active mission at a time. Mission class bonuses are randomly selected each time. Duplicate conversion rewards depend on rarity: 3-star gives 3 quartz, 4-star gives 10 quartz, and 5-star gives 30 quartz. Trade-up requires 3 duplicates and gives a random servant of the next rarity. Deleting a Master cascades to remove all associated data. All database queries use parameterized statements to prevent SQL injection. Error responses follow a consistent JSON format with error message and error code fields.

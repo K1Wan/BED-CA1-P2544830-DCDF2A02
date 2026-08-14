@@ -7,7 +7,9 @@
     "dev": "nodemon src/backend/index.js",
     "seed": "node src/backend/db/seed.js",
     "db": "node src/backend/db/seed.js",
-    "start": "node src/backend/index.js"
+    "start": "node src/backend/index.js",
+    "test": "echo \"No tests configured yet\" && exit 0",
+    "export": "powershell Compress-Archive -Path src,package.json,README.md -DestinationPath export.zip -Force"
   },
   "keywords": [],
   "author": "",
