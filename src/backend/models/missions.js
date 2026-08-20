@@ -13,8 +13,8 @@ export const MISSION_TYPES = {
   "scouting": {
     name: "Scouting",
     duration: 60000,
-    minQuartz: 1,
-    maxQuartz: 3,
+    minQuartz: 4,
+    maxQuartz: 8,
     servantChance: 0.10,
     servantRarity: 3,
   },
